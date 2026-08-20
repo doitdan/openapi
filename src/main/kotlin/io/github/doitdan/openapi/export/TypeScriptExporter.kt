@@ -1,6 +1,10 @@
 package io.github.doitdan.openapi.export
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.github.doitdan.openapi.schemaType
+import io.github.doitdan.openapi.allOfParts
+import io.github.doitdan.openapi.toTypeIdentifier
+import io.github.doitdan.openapi.unionBranches
 
 class TypeScriptExporter {
     fun types(
@@ -17,7 +21,7 @@ class TypeScriptExporter {
         val schemas = spec.path("components").path("schemas")
 
         schemas.fieldNames().asSequence().sorted().forEach { name ->
-            lines += declaration(name, schemas.path(name))
+            lines += declaration(name.toTypeIdentifier(), schemas.path(name))
             lines += ""
         }
 
@@ -34,11 +38,13 @@ class TypeScriptExporter {
     ): String {
         val service = pascal(serviceName)
         val operations = operations(spec)
-        val declared = spec.path("components").path("schemas").fieldNames().asSequence().toSet()
+        val declared = spec.path("components").path("schemas").fieldNames().asSequence().map(String::toTypeIdentifier).toSet()
         val imported = operations
             .flatMap { listOf(it.queryType, it.bodyType, it.responseType) }
             .filterNotNull()
             .map { type -> type.removeSuffix("[]").removeSurrounding("(", ")") }
+            .flatMap { type -> type.split(" | ", " & ") }
+            .map(String::trim)
             .filter { type -> declared.contains(type) || type.endsWith("Query") }
             .distinct()
             .sorted()
@@ -148,11 +154,25 @@ class TypeScriptExporter {
             return "export type $name = $values;"
         }
 
+        val branches = schema.unionBranches()
+        if (branches.isNotEmpty()) return "export type $name = ${branches.joinToString(" | ", transform = ::typeOf)};"
+
+        val (bases, inline) = schema.allOfParts()
+        if (bases.isNotEmpty()) {
+            val own = inline.map { part -> objectBody(part) }.filter { body -> body != "{}" }
+            return "export type $name = ${(bases + own).joinToString(" & ")};"
+        }
+
+        if (schema.path("properties").isMissingNode) return "export type $name = unknown;"
+        return "export interface $name " + objectBody(schema)
+    }
+
+    private fun objectBody(schema: JsonNode): String {
         val properties = schema.path("properties")
-        if (properties.isMissingNode) return "export type $name = unknown;"
+        if (properties.isMissingNode || properties.isEmpty) return "{}"
 
         val required = schema.path("required").map { it.asText() }
-        val lines = mutableListOf("export interface $name {")
+        val lines = mutableListOf("{")
         properties.fieldNames().forEach { property ->
             val node = properties.path(property)
             val optional = if (required.contains(property)) "" else "?"
@@ -164,10 +184,13 @@ class TypeScriptExporter {
     }
 
     private fun typeOf(node: JsonNode): String {
-        node.path("\$ref").takeIf { !it.isMissingNode }?.let { return it.asText().substringAfterLast('/') }
+        node.path("\$ref").takeIf { !it.isMissingNode }?.let { return it.asText().substringAfterLast('/').toTypeIdentifier() }
         if (node.has("enum")) return node.path("enum").joinToString(" | ") { "\"${it.asText()}\"" }
 
-        return when (node.path("type").asText("")) {
+        val branches = node.unionBranches()
+        if (branches.isNotEmpty()) return branches.joinToString(" | ", transform = ::typeOf)
+
+        return when (node.schemaType()) {
             "array" -> arrayOf(typeOf(node.path("items")))
             "integer", "number" -> "number"
             "boolean" -> "boolean"

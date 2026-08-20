@@ -48,7 +48,6 @@
 
 html {
   background: var(--page);
-  scroll-behavior: smooth;
 }
 
 body {
@@ -328,19 +327,19 @@ h1, h2, h3 {
   margin-left: auto;
 }
 
-.nav__list {
-  display: grid;
-  grid-template-rows: 1fr;
-  transition: grid-template-rows 0.3s var(--ease);
-}
-
 .nav__items {
-  min-height: 0;
-  overflow: hidden;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
 }
 
 .nav__group.is-collapsed .nav__list {
-  grid-template-rows: 0fr;
+  display: none;
+}
+
+.nav__group.is-collapsed .nav__items {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .nav__group.is-collapsed .nav__caret {
@@ -2275,10 +2274,6 @@ h1, h2, h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
   *,
   *::before,
   *::after {

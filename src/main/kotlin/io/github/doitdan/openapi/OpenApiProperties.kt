@@ -40,12 +40,20 @@ class OpenApiProperties {
         var version: String = "1.0.0"
         var allowedOrigins: List<String> = emptyList()
 
+        /**
+         * An agent connects one server per service, so the name has to say which API it is.
+         * `spring.application.name` is often just the service noun (`coach`), which reads as
+         * a domain rather than an API — `api` is added unless the name already carries it.
+         */
         fun serverName(applicationName: String): String {
             val configured = name.toSlug()
             if (configured.isNotBlank()) return configured
 
             val application = applicationName.toSlug()
-            return if (application.isBlank()) "openapi-docs" else "$application-docs"
+            if (application.isBlank()) return "openapi-docs"
+
+            val segments = application.split("-")
+            return if (segments.contains("api")) "$application-docs" else "$application-api-docs"
         }
     }
 

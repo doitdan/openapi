@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.doitdan:openapi:0.1.0")
+    implementation("com.github.doitdan:openapi:0.1.1")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:3.x")
 }
 ```
@@ -115,7 +115,7 @@ The MCP server is not a separate process and does not open a port of its own: it
 
 ### Several services at once
 
-Point the agent at one MCP server per service. The server names itself after `spring.application.name` — `orders-api` becomes `orders-api-docs` — so the key in the agent's config file and the `serverInfo` it reports are unique per service without you writing anything. Override with `openapi.mcp.name`; with neither set it falls back to `openapi-docs`. The dialog behind **MCP server** in the sidebar shows the ready-made config for the service you are looking at.
+Point the agent at one MCP server per service. The server names itself after `spring.application.name`, so the key in the agent's config file and the `serverInfo` it reports are unique per service without you writing anything. `api` is added when the name does not already carry it, because a bare service noun reads as a domain rather than an API — `orders-api` becomes `orders-api-docs`, and `orders` becomes `orders-api-docs` too. Override the whole name with `openapi.mcp.name`; with neither set it falls back to `openapi-docs`. The dialog behind **MCP server** in the sidebar shows the ready-made config for the service you are looking at.
 
 Tool names repeat across servers, but MCP namespaces them by server, so `orders-api-docs` and `billing-api-docs` can be connected side by side.
 
@@ -137,6 +137,18 @@ import { createOrdersApiClient } from "./orders-api.client";
 const api = createOrdersApiClient({ baseUrl: "https://api.example.com" });
 const orders = await api.listOrders({ status: "PAID" });
 ```
+
+### What the generator handles
+
+| OpenAPI 3.1 shape | Emitted TypeScript |
+| --- | --- |
+| `"type": ["string", "null"]` | `field?: string` |
+| `oneOf: [$ref, {"type": "null"}]` | `field?: Order` |
+| `oneOf: [$refA, $refB]` | `A \| B` |
+| `allOf: [$ref, {…}]` | `Base & { … }` |
+| Nested DTO named `Outer.Inner` | `Outer_Inner` — a dot is not a legal identifier |
+
+Everything the spec cannot describe stays `unknown` rather than being guessed at.
 
 ### Name collisions across services
 

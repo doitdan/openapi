@@ -1,6 +1,9 @@
 package io.github.doitdan.openapi.mcp
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.github.doitdan.openapi.schemaType
+import io.github.doitdan.openapi.unionBranches
+import io.github.doitdan.openapi.unwrapNullable
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.swagger.v3.core.util.Json31
 
@@ -13,8 +16,9 @@ class SchemaRenderer(
         schema: JsonNode,
         seen: List<String> = emptyList(),
     ): Pair<JsonNode, List<String>> {
-        val ref = schema.path("\$ref").asText("")
-        if (ref.isBlank()) return schema to seen
+        val unwrapped = schema.unwrapNullable()
+        val ref = unwrapped.path("\$ref").asText("")
+        if (ref.isBlank()) return unwrapped to seen
         if (seen.contains(ref)) return mapper.createObjectNode() to seen
 
         var target: JsonNode = spec
@@ -31,7 +35,7 @@ class SchemaRenderer(
         resolved.path("example").takeIf { !it.isMissingNode }?.let { return it }
         resolved.path("enum").takeIf { it.isArray && !it.isEmpty }?.let { return it.first() }
 
-        return when (resolved.path("type").asText("")) {
+        return when (resolved.schemaType()) {
             "array" -> mapper.createArrayNode().add(example(resolved.path("items"), trail))
             "integer", "number" -> mapper.nodeFactory.numberNode(0)
             "boolean" -> mapper.nodeFactory.booleanNode(true)
@@ -68,7 +72,7 @@ class SchemaRenderer(
         if (depth > 5) return emptyList()
         val (resolved, trail) = resolve(schema, seen)
 
-        if (resolved.path("type").asText("") == "array") {
+        if (resolved.schemaType() == "array") {
             return fields(resolved.path("items"), "$prefix[]", trail, depth)
         }
 
@@ -87,7 +91,7 @@ class SchemaRenderer(
                 describe(target) +
                 enumHint(target)
 
-            if (target.has("properties") || target.path("type").asText("") == "array") {
+            if (target.has("properties") || target.schemaType() == "array") {
                 lines += fields(property, path, trail, depth + 1)
             }
         }
@@ -120,11 +124,14 @@ class SchemaRenderer(
         schema: JsonNode,
         resolved: JsonNode = resolve(schema).first,
     ): String {
-        val ref = schema.path("\$ref").asText("")
+        val branches = schema.unionBranches()
+        if (branches.size > 1) return branches.joinToString(" | ") { branch -> typeName(branch) }
+
+        val ref = schema.unwrapNullable().path("\$ref").asText("")
         if (ref.isNotBlank() && !resolved.has("enum")) return ref.substringAfterLast('/')
         if (resolved.has("enum")) return ref.substringAfterLast('/').ifBlank { "enum" }
 
-        return when (resolved.path("type").asText("")) {
+        return when (resolved.schemaType()) {
             "array" -> "array of " + typeName(resolved.path("items"))
             "integer" -> if (resolved.path("format").asText("") == "int64") "int64" else "int32"
             "number" -> "number"

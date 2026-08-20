@@ -39,6 +39,8 @@ data class SampleRequest(
     var status: SampleStatus = SampleStatus.ACTIVE,
     @field:SampleEnumRef(SampleStatus::class)
     var code: String = "",
+    var memo: String? = null,
+    var attempts: Int? = null,
 )
 
 data class SampleResponse(
