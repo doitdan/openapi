@@ -1,0 +1,3 @@
+io.github.doitdan.openapi.OpenApiAutoConfiguration
+io.github.doitdan.openapi.ui.OpenApiUiAutoConfiguration
+io.github.doitdan.openapi.mcp.McpAutoConfiguration

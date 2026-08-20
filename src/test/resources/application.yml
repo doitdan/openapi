@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: sample-api
+
+openapi:
+  markdown-docs:
+    locations:
+      - "classpath:{basePath}/{controller}/{method}.{httpMethod}.{path}.md"
+      - "classpath:{basePath}/{httpMethod}.{path}.md"
+      - "classpath:{basePath}/{controller}/{method}.md"
+      - "classpath:{parentPackage}/docs/{httpMethod}.{path}.md"
+      - "classpath*:**/guides/{controller}.{method}.md"
+  enum-descriptions:
+    string-enum-annotations:
+      - io.github.doitdan.openapi.sample.SampleEnumRef
