@@ -19,6 +19,8 @@ dependencies {
 
 Open `/docs` after startup. Auto-configuration kicks in whenever springdoc is on the classpath.
 
+springdoc is a `compileOnly` dependency here, not a transitive one, because the springdoc version has to match your Spring Boot version — this library should not choose it for you. If your project already declares springdoc, the second line is redundant and one line is enough.
+
 ## The documentation UI
 
 A three-column reference layout, the shape Stripe popularised and Scalar and Redoc follow.
@@ -66,9 +68,9 @@ Server-side defaults:
 openapi:
   ui:
     headers:
-      X-Participant-Type: COACH
+      X-Tenant-Id: acme
     cookies:
-      atn: ""
+      session: ""
 ```
 
 ## MCP server
@@ -78,7 +80,7 @@ The same documentation is served as an [MCP](https://modelcontextprotocol.io) se
 ```json
 {
   "mcpServers": {
-    "coach-api-docs": { "type": "http", "url": "http://localhost:8080/docs/mcp" }
+    "orders-api-docs": { "type": "http", "url": "http://localhost:8080/docs/mcp" }
   }
 }
 ```
@@ -98,24 +100,24 @@ Because the policy markdown lands in the spec description, the agent gets your b
 `get_endpoint` answers with everything one request needs — the server url, the auth scheme, every parameter and body field down the nested objects with its enum values and their meanings, a ready-to-send example, and the response shapes:
 
 ```
-# POST /coaches
+# POST /orders
 server: https://api.example.com
-auth: accessToken (cookie atn)
+auth: accessToken (cookie session)
 
 ## Request body (application/json)
 ### Fields
 - status (enum, required)
-  allowed: PENDING(승인 대기), APPROVED(승인 완료), WITHDRAWN(탈퇴)
-- profile.career.years (int32, optional)
+  allowed: PENDING(Awaiting payment), PAID(Payment captured), CANCELLED(Cancelled by the buyer)
+- shipping.address.postalCode (string, optional)
 ```
 
 The MCP server is not a separate process and does not open a port of its own: it is a controller inside your service, on the same port as the API. Deploying it means routing `{path}/**` to the existing service — and remembering that it is as public as the rest of that host.
 
 ### Several services at once
 
-Point the agent at one MCP server per service. The server names itself after `spring.application.name` — `coach-api` becomes `coach-api-docs` — so the key in the agent's config file and the `serverInfo` it reports are unique per service without you writing anything. Override with `openapi.mcp.name`; with neither set it falls back to `openapi-docs`. The dialog behind **MCP server** in the sidebar shows the ready-made config for the service you are looking at.
+Point the agent at one MCP server per service. The server names itself after `spring.application.name` — `orders-api` becomes `orders-api-docs` — so the key in the agent's config file and the `serverInfo` it reports are unique per service without you writing anything. Override with `openapi.mcp.name`; with neither set it falls back to `openapi-docs`. The dialog behind **MCP server** in the sidebar shows the ready-made config for the service you are looking at.
 
-Tool names repeat across servers, but MCP namespaces them by server, so `coach-api-docs` and `mate-api-docs` can be connected side by side.
+Tool names repeat across servers, but MCP namespaces them by server, so `orders-api-docs` and `billing-api-docs` can be connected side by side.
 
 ## TypeScript export
 
@@ -127,27 +129,27 @@ The frontend can pull a typed interface straight from the running service — no
 | `{path}/export/client.ts` | A typed `fetch` client with one function per operation |
 | `{path}/export/manifest.json` | The filenames for this service |
 
-Filenames follow `spring.application.name`, so several services can be exported side by side — `coach-api.types.d.ts`, `mate-api.types.d.ts` — and the client imports the matching types module. The stem resolves in order: `openapi.export.name`, then `spring.application.name`, then the API title, then `api`.
+Filenames follow `spring.application.name`, so several services can be exported side by side — `orders-api.types.d.ts`, `billing-api.types.d.ts` — and the client imports the matching types module. The stem resolves in order: `openapi.export.name`, then `spring.application.name`, then the API title, then `api`.
 
 ```ts
-import { createCoachApiClient } from "./coach-api.client";
+import { createOrdersApiClient } from "./orders-api.client";
 
-const api = createCoachApiClient({ baseUrl: "https://api.example.com" });
-const coaches = await api.getCoaches({ status: "APPROVED" });
+const api = createOrdersApiClient({ baseUrl: "https://api.example.com" });
+const orders = await api.listOrders({ status: "PAID" });
 ```
 
 ### Name collisions across services
 
-Two services will have a `createCoach` operation sooner or later. The client keeps every operation as a method on the object it returns, so the only module-level names it exports are prefixed with the service — `createCoachApiClient`, `CoachApiClientOptions`, `CoachApiClient` — and two clients never collide.
+Two services will have a `getCustomer` operation sooner or later. The client keeps every operation as a method on the object it returns, so the only module-level names it exports are prefixed with the service — `createOrdersApiClient`, `OrdersApiClientOptions`, `OrdersApiClient` — and two clients never collide.
 
-Schema interfaces keep their own names, since a frontend that imports only one service should not have to read `CoachApiCoachResponse`. Import the types module under a namespace when you use several:
+Schema interfaces keep their own names, since a frontend that imports only one service should not have to read `OrdersApiCustomer`. Import the types module under a namespace when you use several:
 
 ```ts
-import type * as CoachApi from "./coach-api.types";
-import type * as MateApi from "./mate-api.types";
+import type * as OrdersApi from "./orders-api.types";
+import type * as BillingApi from "./billing-api.types";
 
-const coach: CoachApi.CoachResponse = await coachApi.getCoach(id);
-const mate: MateApi.CoachResponse = await mateApi.getCoach(id);
+const buyer: OrdersApi.Customer = await ordersApi.getCustomer(id);
+const payer: BillingApi.Customer = await billingApi.getCustomer(id);
 ```
 
 ## Spec enrichment
@@ -162,13 +164,13 @@ Defaults: POST and PUT → 201, PATCH and DELETE → 204, GET → 200.
 Enum descriptions are read from a member on the enum itself.
 
 ```kotlin
-enum class CoachStatus(private val description: String) {
-    PENDING("Waiting for approval"),
-    APPROVED("Approved"),
+enum class OrderStatus(private val description: String) {
+    PENDING("Awaiting payment"),
+    PAID("Payment captured"),
 }
 ```
 
-The value picker shows value and description together, and the OpenAPI JSON carries both a human-readable markdown list (`- \`PENDING\`: Waiting for approval`) and a machine-readable `x-enum-descriptions` extension.
+The value picker shows value and description together, and the OpenAPI JSON carries both a human-readable markdown list (`- \`PENDING\`: Awaiting payment`) and a machine-readable `x-enum-descriptions` extension.
 
 String fields annotated with a validation annotation that points at an enum (`@IsEnum` and friends) are supported too — register the annotation's FQCN and the `value` member is read for the allowed values.
 
@@ -178,8 +180,8 @@ If `resources/apidocs/{ControllerName}/{methodName}.md` exists, it becomes that 
 
 ```text
 src/main/resources/apidocs/
-  CoachController/
-    createCoach.md
+  OrderController/
+    createOrder.md
 ```
 
 Where those files live is configurable. `locations` takes an ordered list of resource patterns — the first match wins — and supports Spring resource globs (`classpath*:`, `**`).
@@ -187,13 +189,13 @@ Where those files live is configurable. `locations` takes an ordered list of res
 | Placeholder | Resolves to | Example |
 | --- | --- | --- |
 | `{basePath}` | `openapi.markdown-docs.base-path` | `apidocs` |
-| `{controller}` | Controller simple name | `CoachController` |
-| `{method}` | Handler method name | `createCoach` |
+| `{controller}` | Controller simple name | `OrderController` |
+| `{method}` | Handler method name | `createOrder` |
 | `{httpMethod}` | HTTP verb, lowercase | `post` |
-| `{path}` | Full route, slugified | `coaches-coachId` |
-| `{operationId}` | OpenAPI operationId | `createCoach_1` |
-| `{package}` | Controller package as a path | `com/example/api/coach/controller` |
-| `{parentPackage}` | One package up from the controller | `com/example/api/coach` |
+| `{path}` | Full route, slugified | `orders-orderId` |
+| `{operationId}` | OpenAPI operationId | `createOrder_1` |
+| `{package}` | Controller package as a path | `com/example/api/order/controller` |
+| `{parentPackage}` | One package up from the controller | `com/example/api/order` |
 
 ```yaml
 openapi:
@@ -214,11 +216,11 @@ openapi:
 ```
 
 ```text
-application/customer/
-  controller/CustomerController.kt        GET  /customers
-  controller/CustomerGroupController.kt   GET  /customers/groups/{customerGroupId}
-  docs/get.customers.md
-  docs/get.customers-groups-customerGroupId.md
+application/order/
+  controller/OrderController.kt       GET  /orders
+  controller/OrderItemController.kt   GET  /orders/{orderId}/items
+  docs/get.orders.md
+  docs/get.orders-orderId-items.md
 ```
 
 Markdown under a source directory only reaches the classpath if the build copies it, so add it to `processResources`:
@@ -234,9 +236,9 @@ tasks.processResources {
 **Overloaded handlers.** When a controller has several handlers with the same method name — normal when you lean on polymorphism — the method name alone is ambiguous. Spring already requires those handlers to differ by route or verb, so put `{httpMethod}` and `{path}` in the pattern and each one gets its own file:
 
 ```text
-apidocs/SampleController/
-  createSample.post.samples.md        # POST /samples
-  createSample.post.samples-bulk.md   # POST /samples/bulk
+apidocs/OrderController/
+  createOrder.post.orders.md        # POST /orders
+  createOrder.post.orders-bulk.md   # POST /orders/bulk
 ```
 
 List the specific pattern first and the plain `{method}.md` after it, so overloads resolve precisely while everything else keeps the short name.
