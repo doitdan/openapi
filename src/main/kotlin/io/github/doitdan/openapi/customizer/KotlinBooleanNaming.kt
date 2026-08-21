@@ -55,6 +55,20 @@ class KotlinBooleanNamingPostProcessor : BeanPostProcessor {
     ) : AccessorNamingStrategy() {
         private val kotlin = target.rawType?.isAnnotationPresent(Metadata::class.java) == true
 
+        /**
+         * `var isEnabled` compiles to `isEnabled()` and `setEnabled()`, so the mutator alone
+         * would still strip the prefix. The declared fields carry the Kotlin property names.
+         */
+        private val declared: Set<String> = target.rawType
+            ?.declaredFields
+            .orEmpty()
+            .map { field -> field.name }
+            .filter { name -> name.startsWith("is") }
+            .toSet()
+
+        private fun restore(stripped: String): String? = declared
+            .firstOrNull { name -> name == "is" + stripped.replaceFirstChar(Char::uppercaseChar) }
+
         override fun findNameForIsGetter(
             method: AnnotatedMethod,
             name: String,
@@ -71,7 +85,10 @@ class KotlinBooleanNamingPostProcessor : BeanPostProcessor {
         override fun findNameForMutator(
             method: AnnotatedMethod,
             name: String,
-        ): String? = delegate.findNameForMutator(method, name)
+        ): String? {
+            val stripped = delegate.findNameForMutator(method, name) ?: return null
+            return if (kotlin) restore(stripped) ?: stripped else stripped
+        }
 
         override fun modifyFieldName(
             field: com.fasterxml.jackson.databind.introspect.AnnotatedField,
