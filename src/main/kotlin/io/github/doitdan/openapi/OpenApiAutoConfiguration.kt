@@ -8,6 +8,7 @@ import io.github.doitdan.openapi.customizer.MarkdownDocsCustomizer
 import io.github.doitdan.openapi.customizer.MarkdownDocsResolver
 import io.github.doitdan.openapi.customizer.PublicPathCustomizer
 import io.github.doitdan.openapi.customizer.KotlinBooleanNamingPostProcessor
+import io.github.doitdan.openapi.customizer.KotlinRequiredConverter
 import io.github.doitdan.openapi.customizer.SuccessStatusCustomizer
 import io.github.doitdan.openapi.export.ExportController
 import io.github.doitdan.openapi.export.TypeScriptExporter
@@ -45,6 +46,10 @@ class OpenApiAutoConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "openapi.markdown-docs", name = ["enabled"], matchIfMissing = true)
     fun markdownDocsResolver(properties: OpenApiProperties) = MarkdownDocsResolver(properties.markdownDocs)
+
+    @Bean
+    @ConditionalOnProperty(prefix = "openapi.kotlin-required", name = ["enabled"], matchIfMissing = true)
+    fun kotlinRequiredConverter() = KotlinRequiredConverter()
 
     @Bean
     fun publicPathCustomizer(properties: OpenApiProperties) = PublicPathCustomizer(properties.security)

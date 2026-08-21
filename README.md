@@ -148,6 +148,7 @@ const orders = await api.listOrders({ status: "PAID" });
 | `allOf: [$ref, {…}]` | `Base & { … }` |
 | Nested DTO named `Outer.Inner` | `Outer_Inner` — a dot is not a legal identifier |
 | Kotlin `val isSynced: Boolean` | `isSynced` — swagger-core would document it as `synced`, which is not what the app sends |
+| Kotlin `val name: String` (non-null, no default) | `name: string` — required, because the application already rejects a payload without it |
 
 Everything the spec cannot describe stays `unknown` rather than being guessed at.
 

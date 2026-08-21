@@ -127,6 +127,20 @@ class OpenApiIntegrationTest(
     }
 
     @Test
+    fun `Kotlin non-null 프로퍼티를 required 로 문서화한다`() {
+        mockMvc
+            .perform(get("/v3/api-docs"))
+            .andExpect(jsonPath("$.components.schemas.SampleResponse.required", hasItems("status", "code")))
+            // 기본값이 있는 파라미터는 보내지 않아도 되므로 required 가 아니다
+            .andExpect(jsonPath("$.components.schemas.SampleResponse.required", not(hasItems("isSynced", "hasChild"))))
+            .andExpect(jsonPath("$.components.schemas.SampleRequest.required").doesNotExist())
+
+        val types = callTool("""{"name":"get_typescript","arguments":{"kind":"types"}}""")
+        assertTrue(types.contains("status: \"ACTIVE\" | \"INACTIVE\";"), types)
+        assertTrue(types.contains("isSynced?: boolean"), types)
+    }
+
+    @Test
     fun `MCP 서버가 도구를 노출하고 문서를 답한다`() {
         mockMvc
             .perform(
