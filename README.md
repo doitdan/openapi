@@ -195,7 +195,10 @@ openapi:
     include: [400, 401, 403, 404, 500]
     descriptions:
       "[401]": "Send the session cookie; it expires after 30 minutes."
-      "[404]": "Either it does not exist or it belongs to another coach." 
+      "[404]": "Either it does not exist or it belongs to another coach."
+```
+
+The defaults stay generic because they apply to every operation. What makes *one* endpoint fail belongs in its markdown, under a heading the reader is already looking at.
   security:
     public-paths:            # login and sign-up issue the credential, they do not need it
       - /auth/**

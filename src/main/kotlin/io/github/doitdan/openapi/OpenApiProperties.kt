@@ -69,16 +69,17 @@ class OpenApiProperties {
         var include: List<Int> = listOf(400, 401, 403, 404, 500)
 
         /**
-         * What each code means here. `Bad Request` restates the number; a reader needs to
-         * know when it happens. Override per service to name your own rules.
+         * What each code means. `Bad Request` restates the number; a reader needs the
+         * condition. These stay generic — override them to name a service's own rules,
+         * and put the rules of one endpoint in its markdown instead.
          */
         var descriptions: Map<Int, String> = mapOf(
-            400 to "The body or parameters failed validation.",
+            400 to "The request does not meet the format or constraints.",
             401 to "No credential was sent, or it has expired.",
-            403 to "Authenticated, but not allowed to touch this resource.",
-            404 to "The target does not exist, or it does not belong to the caller.",
-            409 to "The request conflicts with the current state of the target.",
-            500 to "Unhandled failure on the server.",
+            403 to "Authenticated, but not permitted.",
+            404 to "The target was not found.",
+            409 to "The request conflicts with the current state.",
+            500 to "The server failed to handle the request.",
         )
 
         fun describe(status: Int, fallback: String): String = descriptions[status] ?: fallback
