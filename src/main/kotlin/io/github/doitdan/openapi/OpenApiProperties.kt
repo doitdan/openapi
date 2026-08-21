@@ -9,6 +9,8 @@ class OpenApiProperties {
     var mcp: Mcp = Mcp()
     var export: Export = Export()
     var successStatus: SuccessStatus = SuccessStatus()
+    var errorResponses: ErrorResponses = ErrorResponses()
+    var security: Security = Security()
     var enumDescriptions: EnumDescriptions = EnumDescriptions()
     var markdownDocs: MarkdownDocs = MarkdownDocs()
 
@@ -25,6 +27,9 @@ class OpenApiProperties {
     class Export {
         var enabled: Boolean = true
         var name: String = ""
+
+        /** Commit or build identifier of the service this export came from. Set it from CI. */
+        var buildId: String = ""
 
         fun fileStem(
             applicationName: String,
@@ -55,6 +60,18 @@ class OpenApiProperties {
             val segments = application.split("-")
             return if (segments.contains("api")) "$application-docs" else "$application-api-docs"
         }
+    }
+
+    class ErrorResponses {
+        var enabled: Boolean = true
+
+        /** Status codes worth documenting. Anything outside this list is left alone. */
+        var include: List<Int> = listOf(400, 401, 403, 404, 500)
+    }
+
+    class Security {
+        /** Ant patterns that need no credential — login, sign-up, webhooks. */
+        var publicPaths: List<String> = emptyList()
     }
 
     class SuccessStatus {

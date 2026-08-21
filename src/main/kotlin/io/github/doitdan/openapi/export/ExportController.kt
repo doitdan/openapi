@@ -3,6 +3,7 @@ package io.github.doitdan.openapi.export
 import com.fasterxml.jackson.databind.JsonNode
 import io.github.doitdan.openapi.OpenApiProperties
 import io.github.doitdan.openapi.SpecReader
+import io.swagger.v3.core.util.Json31
 import io.swagger.v3.oas.annotations.Hidden
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ResponseBody
+import java.security.MessageDigest
 
 @Hidden
 @Controller
@@ -23,12 +25,27 @@ class ExportController(
     @GetMapping("\${openapi.ui.path:/docs}/export/manifest.json")
     @ResponseBody
     fun manifest(request: HttpServletRequest): Map<String, String> {
-        val name = nameOf(specReader.read(request))
-        return mapOf(
-            "name" to name,
-            "types" to "$name.types.d.ts",
-            "client" to "$name.client.ts",
-        )
+        val spec = specReader.read(request)
+        val name = nameOf(spec)
+        return buildMap {
+            put("name", name)
+            put("types", "$name.types.d.ts")
+            put("client", "$name.client.ts")
+            put("apiVersion", spec.path("info").path("version").asText(""))
+            put("specHash", specHash(spec))
+            properties.export.buildId.takeIf(String::isNotBlank)?.let { put("buildId", it) }
+        }
+    }
+
+    /**
+     * The manifest has to prove which server produced this export. `buildId` names the
+     * deployment when CI provides it; the hash always changes when the contract does, so a
+     * consumer can tell a re-export apart from an unchanged one without any CI wiring.
+     */
+    private fun specHash(spec: JsonNode): String {
+        val canonical = Json31.mapper().writeValueAsBytes(spec)
+        val digest = MessageDigest.getInstance("SHA-256").digest(canonical)
+        return digest.take(8).joinToString("") { byte -> "%02x".format(byte) }
     }
 
     @GetMapping("\${openapi.ui.path:/docs}/export/types.d.ts")

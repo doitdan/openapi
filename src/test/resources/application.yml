@@ -3,6 +3,9 @@ spring:
     name: sample-api
 
 openapi:
+  security:
+    public-paths:
+      - /samples/alias
   markdown-docs:
     locations:
       - "classpath:{basePath}/{controller}/{method}.{httpMethod}.{path}.md"

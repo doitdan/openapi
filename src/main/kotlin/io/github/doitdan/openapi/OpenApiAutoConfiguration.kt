@@ -1,10 +1,13 @@
 package io.github.doitdan.openapi
 
 import io.github.doitdan.openapi.customizer.EnumDocs
+import io.github.doitdan.openapi.customizer.ErrorResponseCustomizer
 import io.github.doitdan.openapi.customizer.EnumParameterCustomizer
 import io.github.doitdan.openapi.customizer.EnumPropertyCustomizer
 import io.github.doitdan.openapi.customizer.MarkdownDocsCustomizer
 import io.github.doitdan.openapi.customizer.MarkdownDocsResolver
+import io.github.doitdan.openapi.customizer.PublicPathCustomizer
+import io.github.doitdan.openapi.customizer.KotlinBooleanNamingPostProcessor
 import io.github.doitdan.openapi.customizer.SuccessStatusCustomizer
 import io.github.doitdan.openapi.export.ExportController
 import io.github.doitdan.openapi.export.TypeScriptExporter
@@ -42,6 +45,19 @@ class OpenApiAutoConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "openapi.markdown-docs", name = ["enabled"], matchIfMissing = true)
     fun markdownDocsResolver(properties: OpenApiProperties) = MarkdownDocsResolver(properties.markdownDocs)
+
+    @Bean
+    fun publicPathCustomizer(properties: OpenApiProperties) = PublicPathCustomizer(properties.security)
+
+    @Bean
+    @ConditionalOnProperty(prefix = "openapi.error-responses", name = ["enabled"], matchIfMissing = true)
+    fun errorResponseCustomizer(properties: OpenApiProperties) = ErrorResponseCustomizer(properties.errorResponses) {
+        properties.security.publicPaths.isNotEmpty()
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "openapi.kotlin-boolean-naming", name = ["enabled"], matchIfMissing = true)
+    fun kotlinBooleanNamingPostProcessor() = KotlinBooleanNamingPostProcessor()
 
     @Bean
     fun openApiSpecReader(

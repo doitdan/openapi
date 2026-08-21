@@ -46,4 +46,6 @@ data class SampleRequest(
 data class SampleResponse(
     val status: SampleStatus,
     val code: String,
+    val isSynced: Boolean = true,
+    val hasChild: Boolean = false,
 )

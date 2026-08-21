@@ -95,6 +95,38 @@ class OpenApiIntegrationTest(
     }
 
     @Test
+    fun `Kotlin의 is 접두 Boolean 이름을 스펙에서 유지한다`() {
+        mockMvc
+            .perform(get("/v3/api-docs"))
+            .andExpect(jsonPath("$.components.schemas.SampleResponse.properties.isSynced").exists())
+            .andExpect(jsonPath("$.components.schemas.SampleResponse.properties.synced").doesNotExist())
+            .andExpect(jsonPath("$.components.schemas.SampleResponse.properties.hasChild").exists())
+
+        val types = callTool("""{"name":"get_typescript","arguments":{"kind":"types"}}""")
+        assertTrue(types.contains("isSynced?: boolean"), types)
+        assertTrue(!types.contains("synced?: boolean"), types)
+    }
+
+    @Test
+    fun `오류 응답과 공개 경로를 스펙에 표시한다`() {
+        mockMvc
+            .perform(get("/v3/api-docs"))
+            .andExpect(jsonPath("$.paths['/samples'].post.responses.400").exists())
+            .andExpect(jsonPath("$.paths['/samples'].post.responses.500").exists())
+            .andExpect(jsonPath("$.paths['/samples/{sampleId}'].get.responses.404").exists())
+            .andExpect(jsonPath("$.paths['/samples/alias'].get.security").isEmpty)
+    }
+
+    @Test
+    fun `export manifest 가 출처를 밝힌다`() {
+        mockMvc
+            .perform(get("/docs/export/manifest.json"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.specHash").isNotEmpty)
+            .andExpect(jsonPath("$.apiVersion").exists())
+    }
+
+    @Test
     fun `MCP 서버가 도구를 노출하고 문서를 답한다`() {
         mockMvc
             .perform(

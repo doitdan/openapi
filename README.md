@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.doitdan:openapi:0.1.1")
+    implementation("com.github.doitdan:openapi:0.2.0")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:3.x")
 }
 ```
@@ -127,7 +127,7 @@ The frontend can pull a typed interface straight from the running service — no
 | --- | --- |
 | `{path}/export/types.d.ts` | Every schema as an interface, enums as string unions, required vs optional |
 | `{path}/export/client.ts` | A typed `fetch` client with one function per operation |
-| `{path}/export/manifest.json` | The filenames for this service |
+| `{path}/export/manifest.json` | The filenames, the API version, and a hash of the contract |
 
 Filenames follow `spring.application.name`, so several services can be exported side by side — `orders-api.types.d.ts`, `billing-api.types.d.ts` — and the client imports the matching types module. The stem resolves in order: `openapi.export.name`, then `spring.application.name`, then the API title, then `api`.
 
@@ -147,8 +147,24 @@ const orders = await api.listOrders({ status: "PAID" });
 | `oneOf: [$refA, $refB]` | `A \| B` |
 | `allOf: [$ref, {…}]` | `Base & { … }` |
 | Nested DTO named `Outer.Inner` | `Outer_Inner` — a dot is not a legal identifier |
+| Kotlin `val isSynced: Boolean` | `isSynced` — swagger-core would document it as `synced`, which is not what the app sends |
 
 Everything the spec cannot describe stays `unknown` rather than being guessed at.
+
+### Proving which server an export came from
+
+The manifest carries a short hash of the document, so a consumer can tell a real contract change from a re-export of the same thing. Set `openapi.export.build-id` from CI to name the deployment as well.
+
+```json
+{
+  "name": "orders-api",
+  "types": "orders-api.types.d.ts",
+  "client": "orders-api.client.ts",
+  "apiVersion": "1.0.0",
+  "specHash": "9f2a41c8d0b3e7a5",
+  "buildId": "b41f9c2"
+}
+```
 
 ### Name collisions across services
 
@@ -165,6 +181,21 @@ const payer: BillingApi.Customer = await billingApi.getCustomer(id);
 ```
 
 ## Spec enrichment
+
+### Error responses
+
+Only the success response is documented by default, so a consumer cannot tell a documented failure from an undocumented one. The codes each operation can actually produce are derived from its shape — an operation that takes input can answer 400, a secured one 401 and 403, one that takes a path variable 404 — and added where they are missing.
+
+```yaml
+openapi:
+  error-responses:
+    include: [400, 401, 403, 404, 500]
+  security:
+    public-paths:            # login and sign-up issue the credential, they do not need it
+      - /auth/**
+```
+
+`public-paths` clears the document-level security requirement on those operations, which is what makes the remaining ones a truthful list of what needs authentication.
 
 ### Success status inference
 
