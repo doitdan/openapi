@@ -66,7 +66,7 @@ class OpenApiProperties {
         var enabled: Boolean = true
 
         /** Status codes worth documenting. Anything outside this list is left alone. */
-        var include: List<Int> = listOf(400, 401, 403, 404, 500)
+        var include: List<Int> = listOf(400, 401, 403, 404, 409, 500)
 
         /**
          * What each code means. `Bad Request` restates the number; a reader needs the

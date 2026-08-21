@@ -185,14 +185,22 @@ const payer: BillingApi.Customer = await billingApi.getCustomer(id);
 
 ### Error responses
 
-Only the success response is documented by default, so a consumer cannot tell a documented failure from an undocumented one. The codes each operation can actually produce are derived from its shape — an operation that takes input can answer 400, a secured one 401 and 403, one that takes a path variable 404 — and added where they are missing.
+Only the success response is documented by default, so a consumer cannot tell a documented failure from an undocumented one. The codes each operation can actually produce are derived from its shape and added where they are missing.
+
+| Code | Added when |
+|---|---|
+| 400 | the operation takes a body or parameters |
+| 401, 403 | the operation requires a credential |
+| 404 | the operation takes a path variable, or is not a `POST` |
+| 409 | the operation writes — a conflict needs something to conflict with |
+| 500 | always |
 
 `Bad Request` only restates the number, so each code carries a sentence about when it happens. Override them to name your own rules.
 
 ```yaml
 openapi:
   error-responses:
-    include: [400, 401, 403, 404, 500]
+    include: [400, 401, 403, 404, 409, 500]
     descriptions:
       "[401]": "Send the session cookie; it expires after 30 minutes."
       "[404]": "Either it does not exist or it belongs to another coach."

@@ -55,6 +55,9 @@ class ErrorResponseCustomizer(
         val takesIdentifier = operation.parameters.orEmpty().any { it.`in` == "path" }
         if (takesIdentifier || method != "post") codes += HttpStatus.NOT_FOUND
 
+        // A conflict needs something to conflict with, which only a write creates.
+        if (method in WRITE_METHODS) codes += HttpStatus.CONFLICT
+
         codes += HttpStatus.INTERNAL_SERVER_ERROR
         return codes.filter { it.value() in config.include }
     }
@@ -65,6 +68,10 @@ class ErrorResponseCustomizer(
     ): Boolean {
         operation.security?.let { return it.isNotEmpty() }
         return openApi.security?.isNotEmpty() == true && securedByDefault()
+    }
+
+    private companion object {
+        val WRITE_METHODS = setOf("post", "put", "patch", "delete")
     }
 
     private fun operationsOf(pathItem: PathItem): Map<String, Operation> = listOfNotNull(

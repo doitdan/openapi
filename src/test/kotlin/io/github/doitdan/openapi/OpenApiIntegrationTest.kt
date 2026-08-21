@@ -114,6 +114,9 @@ class OpenApiIntegrationTest(
             .andExpect(jsonPath("$.paths['/samples'].post.responses.400.description", containsString("보내면")))
             .andExpect(jsonPath("$.paths['/samples'].post.responses.500.description").exists())
             .andExpect(jsonPath("$.paths['/samples/{sampleId}'].get.responses.404").exists())
+            // 충돌은 쓰기에서만 생긴다
+            .andExpect(jsonPath("$.paths['/samples'].post.responses.409").exists())
+            .andExpect(jsonPath("$.paths['/samples'].get.responses.409").doesNotExist())
             .andExpect(jsonPath("$.paths['/samples/alias'].get.security").isEmpty)
     }
 
