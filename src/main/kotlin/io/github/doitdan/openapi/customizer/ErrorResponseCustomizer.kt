@@ -33,7 +33,7 @@ class ErrorResponseCustomizer(
         codesFor(openApi, method, operation).forEach { status ->
             val code = status.value().toString()
             if (responses.containsKey(code)) return@forEach
-            responses.addApiResponse(code, ApiResponse().description(status.reasonPhrase))
+            responses.addApiResponse(code, ApiResponse().description(config.describe(status.value(), status.reasonPhrase)))
         }
     }
 

@@ -3,6 +3,9 @@ spring:
     name: sample-api
 
 openapi:
+  error-responses:
+    descriptions:
+      "[400]": "형식·제약을 어긴 값을 보내면 거절된다"
   security:
     public-paths:
       - /samples/alias
