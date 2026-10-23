@@ -311,6 +311,20 @@ Full markdown support: headings, nested lists, tables, task lists, block quotes,
 
 Types are shown as JVM data structures — `integer($int64)` → `Long`, `string($date-time)` → `LocalDateTime`, `array[string]` → `List<String>`, and `$ref` as the schema name.
 
+## Building the document ahead of the first request
+
+springdoc builds the document on the first request and keeps it. With markdown docs on every endpoint that first build can take tens of seconds, long enough for a browser or a proxy to give up. Turn on `openapi.warm-up` where the docs are served (a dev profile, say) and the document is built in the background once the application is ready. A request that arrives while it is being built waits for it and then reads the cached document:
+
+```yaml
+openapi:
+  warm-up:
+    enabled: true
+springdoc:
+  allowed-locales: ko-KR
+```
+
+springdoc keeps one document per request locale, so a browser sending `Accept-Language: ko-KR` would miss a document built for another locale. One entry in `springdoc.allowed-locales` makes every request — and the UI, MCP and export — share the warmed document.
+
 ## Configuration
 
 ```yaml
@@ -342,6 +356,8 @@ openapi:
   export:
     enabled: true
     name: ""             # falls back to spring.application.name, then a slug of info.title
+  warm-up:
+    enabled: false       # build the document in the background once the app is ready
   markdown-docs:
     enabled: true
     base-path: apidocs

@@ -72,6 +72,10 @@ class OpenApiAutoConfiguration {
     ) = SpecReader(properties, resourceProvider, springDocProvider)
 
     @Bean
+    @ConditionalOnProperty(prefix = "openapi.warm-up", name = ["enabled"])
+    fun openApiSpecWarmUp(resourceProvider: ObjectProvider<OpenApiWebMvcResource>) = SpecWarmUp(resourceProvider)
+
+    @Bean
     @ConditionalOnProperty(prefix = "openapi.export", name = ["enabled"], matchIfMissing = true)
     fun openApiExportController(
         properties: OpenApiProperties,
