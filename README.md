@@ -349,12 +349,12 @@ openapi:
     string-enum-annotations:
       - com.example.validation.IsEnum
   mcp:
-    enabled: true
+    enabled: true        # false also hides the MCP row from the sidebar
     name: ""             # falls back to {spring.application.name}-docs, then openapi-docs
     version: 1.0.0
     allowed-origins: []  # empty means same origin and localhost only
   export:
-    enabled: true
+    enabled: true        # false also hides the TypeScript rows from the sidebar
     name: ""             # falls back to spring.application.name, then a slug of info.title
   warm-up:
     enabled: false       # build the document in the background once the app is ready

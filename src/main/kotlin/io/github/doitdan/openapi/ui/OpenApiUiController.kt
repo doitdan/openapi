@@ -24,5 +24,7 @@ class OpenApiUiController(
         "headers" to properties.ui.headers,
         "cookies" to properties.ui.cookies,
         "mcpName" to properties.mcp.serverName(applicationName),
+        "export" to properties.export.enabled,
+        "mcp" to properties.mcp.enabled,
     )
 }

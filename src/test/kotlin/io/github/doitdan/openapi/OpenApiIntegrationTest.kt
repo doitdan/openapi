@@ -216,6 +216,8 @@ class OpenApiIntegrationTest(
             .perform(get("/docs/config.json"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.mcpName").value("sample-api-docs"))
+            .andExpect(jsonPath("$.export").value(true))
+            .andExpect(jsonPath("$.mcp").value(true))
 
         mockMvc
             .perform(get("/docs/export/manifest.json"))

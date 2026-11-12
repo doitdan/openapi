@@ -21,7 +21,7 @@
   };
 
   var state = {
-    config: { docsUrl: "/v3/api-docs", tryItOut: true, title: null, headers: {}, mcpName: "openapi-docs" },
+    config: { docsUrl: "/v3/api-docs", tryItOut: true, title: null, headers: {}, mcpName: "openapi-docs", export: true, mcp: true },
     spec: null,
     entries: [],
     filter: "",
@@ -2070,18 +2070,24 @@
     ]);
     mcpRow.addEventListener("click", function () { openMcpDialog(base); });
 
-    fetch(base + "/export/manifest.json")
-      .then(function (response) { return response.ok ? response.json() : null; })
-      .then(function (manifest) {
-        if (!manifest) return;
-        renameExport(typesRow, manifest.types);
-        renameExport(clientRow, manifest.client);
-      })
-      .catch(function () { /* export disabled */ });
+    if (state.config.export) {
+      fetch(base + "/export/manifest.json")
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (manifest) {
+          if (!manifest) return;
+          renameExport(typesRow, manifest.types);
+          renameExport(clientRow, manifest.client);
+        })
+        .catch(function () { /* export disabled */ });
+    }
+
+    var rows = [specRow];
+    if (state.config.export) rows.push(typesRow, clientRow);
+    if (state.config.mcp) rows.push(mcpRow);
 
     return h("div", { class: "sidebar__footer" }, [
       h("div", { class: "nav__group-title", text: "Export" }),
-      h("div", { class: "export" }, [specRow, typesRow, clientRow, mcpRow]),
+      h("div", { class: "export" }, rows),
     ]);
   }
 
